@@ -1,6 +1,6 @@
 {
-  "name": "wxt-vue-starter",
-  "description": "manifest.json description",
+  "name": "treasure-chest",
+  "description": "浏览器插件、工具箱、二维码助手",
   "private": true,
   "version": "0.0.0",
   "type": "module",
