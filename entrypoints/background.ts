@@ -1,4 +1,4 @@
-import { onMessage } from "webext-bridge/background";
+import { onMessage, sendMessage } from "webext-bridge/background";
 
 const getImgBase64 = (url: string) => {
   return new Promise((r) => {
@@ -14,8 +14,37 @@ const getImgBase64 = (url: string) => {
   });
 };
 
+const getCurrentTab = async () => {
+  try {
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    return tab;
+  } catch {}
+};
+
+const messageContainer = new Set();
+
 export default defineBackground(() => {
   console.log("Hello background!", { id: browser.runtime.id });
+
+  onMessage("message-init", ({ sender, data }) => {
+    console.log(data);
+    messageContainer.add(sender.tabId);
+  });
+  onMessage("get-current-tab", async () => {
+    const tab = await getCurrentTab();
+    return tab;
+  });
+  onMessage("toast-to-background", async ({ data }) => {
+    const tab = await getCurrentTab();
+    if (!tab) return;
+    browser.tabs.sendMessage(tab.id!, {
+      type: "toast",
+      data,
+    });
+  });
 
   onMessage<string>("get-base64", async ({ data }) => {
     const res = await getImgBase64(data);

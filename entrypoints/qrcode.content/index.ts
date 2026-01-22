@@ -1,7 +1,7 @@
 import { onMessage, sendMessage } from "webext-bridge/content-script";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import App from "./App.vue";
-import "./reset.css";
+import "@/styles/reset.css";
 
 const qrCodeDecoder = new BrowserQRCodeReader();
 const decodeImg = async (url: string) => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { copy } from "@/utils/general";
-import { onMessage, sendMessage } from "webext-bridge/popup";
+import { sendMessage } from "webext-bridge/popup";
 import Spin from "@/components/Spin/index.vue";
 
 interface QrResult {
@@ -11,6 +11,12 @@ interface QrResult {
 
 const list = ref<QrResult[]>([]);
 const loading = ref(false);
+
+const onDownload = (src: string) => {
+  browser.downloads.download({
+    url: src,
+  });
+};
 
 onMounted(async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -29,18 +35,23 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <div>
     <Spin v-if="loading" />
     <div class="flex qrcode-item" v-for="item in list" :key="item.url">
       <img :src="item.url" alt="" width="100px" />
       <div class="flex-1 flex flex-items-start flex-justify-between">
         <span class="break-all">{{ item.content }}</span>
-        <span
-          class="ml-0.5 cursor-pointer hover-op-80 flex-shrink-0"
-          @click="copy(item.content)"
-        >
-          复制
-        </span>
+        <div class="ml-0.5 flex-shrink-0">
+          <div class="cursor-pointer hover-op-80" @click="copy(item.content)">
+            复制
+          </div>
+          <div
+            class="mt-1 cursor-pointer hover-op-80"
+            @click="onDownload(item.url)"
+          >
+            下载
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -48,8 +59,13 @@ onMounted(async () => {
 
 <style lang="less" scoped>
 .qrcode-item {
-  padding: 0 4px;
+  padding: 8px;
   border-bottom: 1px solid #f0f0f0;
+  & > img {
+    border: 1px solid #f0f0f0;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
   &:last-child {
     border-bottom: none;
   }

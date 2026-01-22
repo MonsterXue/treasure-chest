@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { sendMessage } from "webext-bridge/content-script";
-import { createPopper, VirtualElement } from "@popperjs/core/lib/popper-lite";
-import { useSecret } from "@/composables/useSecret";
+import { createPopper } from "@popperjs/core/lib/popper-lite";
+import { MD5 } from "crypto-js";
 import flip from "@popperjs/core/lib/modifiers/flip";
 import preventOverflow from "@popperjs/core/lib/modifiers/preventOverflow";
+import CopyIcon from "@/assets/copy.svg?component";
 
 interface IProps {
   decodeImg(url: string): Promise<string>;
@@ -13,10 +14,8 @@ const props = defineProps<IProps>();
 const popoverRef = ref();
 const popoverVisible = ref(false);
 const decodeResult = ref<string>();
-const isIframe = computed(() => isRemoteUrl(decodeResult.value || ""));
 
 const cache = new Map();
-const { decrypt, encrypt } = useSecret();
 
 function generateGetBoundingClientRect(x = 0, y = 0) {
   return () => ({
@@ -31,6 +30,21 @@ function generateGetBoundingClientRect(x = 0, y = 0) {
 
 const virtualElement = {
   getBoundingClientRect: generateGetBoundingClientRect(),
+};
+
+const closeTimer = ref<NodeJS.Timeout>();
+const clearCloseTimer = () => {
+  if (!closeTimer.value) return;
+  clearTimeout(closeTimer.value);
+};
+const showPopover = () => {
+  clearCloseTimer();
+  popoverVisible.value = true;
+};
+const closePopover = () => {
+  closeTimer.value = setTimeout(() => {
+    popoverVisible.value = false;
+  }, 100);
 };
 
 onMounted(() => {
@@ -59,16 +73,17 @@ onMounted(() => {
       rect.y + rect.height
     );
     instance.update();
-    popoverVisible.value = true;
+    showPopover();
   };
 
   document.addEventListener("mouseover", async (e) => {
     const target = e.target as HTMLImageElement;
     if (target.tagName !== "IMG") return;
 
-    const cacheKey = encrypt(target.src);
+    const cacheKey = MD5(target.src).toString();
     if (cache.has(cacheKey)) {
       decodeResult.value = cache.get(cacheKey);
+      if (!decodeResult.value) return;
       updatePopover(target);
       return;
     }
@@ -86,9 +101,7 @@ onMounted(() => {
 
     updatePopover(target);
 
-    target.addEventListener("mouseleave", () => {
-      popoverVisible.value = false;
-    });
+    target.addEventListener("mouseleave", closePopover);
   });
 });
 </script>
@@ -99,22 +112,17 @@ onMounted(() => {
     class="qrcode-helper-popover"
     :class="{
       'qrcode-helper-popover--show': popoverVisible,
-      'qrcode-helper-popover-iframe': isIframe,
     }"
-    @mouseenter="popoverVisible = true"
-    @mouseleave="popoverVisible = false"
+    @mouseenter="showPopover"
+    @mouseleave="closePopover"
   >
     <div class="qrcode-helper-content">
       <div class="qrcode-helper-arrow"></div>
       <div class="qrcode-helper-inner">
-        <template v-if="isIframe">
-          <div class="qrcode-helper-inner-title">
-            <span>{{ decodeResult }}</span>
-            <span class="copy-btn" @click="copy(decodeResult!)">复制</span>
-          </div>
-          <iframe :src="decodeResult"></iframe>
-        </template>
-        <div v-else class="qrcode-helper-inner-text">{{ decodeResult }}</div>
+        <div class="qrcode-helper-inner-text">
+          <span>{{ decodeResult }}</span>
+          <CopyIcon class="copy-btn" @click="copy(decodeResult!)" />
+        </div>
       </div>
     </div>
   </div>
@@ -123,19 +131,12 @@ onMounted(() => {
 <style lang="less" scoped>
 .qrcode-helper-popover {
   position: absolute;
+  max-width: 400px;
   border-radius: 4px;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s;
   z-index: 9999;
-
-  &.qrcode-helper-popover-iframe {
-    width: 400px;
-
-    .qrcode-helper-inner {
-      padding: 0 !important;
-    }
-  }
 
   &.qrcode-helper-popover--show {
     visibility: visible;
@@ -215,34 +216,26 @@ onMounted(() => {
       background-color: #ffffff;
       background-clip: padding-box;
       border-radius: 8px;
-      box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
-        0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+      box-shadow:
+        0 6px 16px 0 rgba(0, 0, 0, 0.08),
+        0 3px 6px -4px rgba(0, 0, 0, 0.12),
+        0 9px 28px 8px rgba(0, 0, 0, 0.05);
       padding: 12px;
+
+      &-text {
+        display: flex;
+        align-items: center;
+        word-break: break-all;
+      }
 
       .copy-btn {
         margin-left: 4px;
+        font-size: 16px;
+        color: #666666;
         cursor: pointer;
         &:hover {
           opacity: 0.8;
         }
-      }
-
-      &-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 4px 8px;
-        margin-bottom: 8px;
-        background-color: #edf2fa;
-        color: #1f1f1f;
-        border-radius: 4px 4px 0 0;
-        word-break: break-all;
-      }
-
-      iframe {
-        border: 0;
-        width: 100%;
-        height: 225px;
       }
     }
   }
