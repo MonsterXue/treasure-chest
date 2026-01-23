@@ -5,7 +5,8 @@ import svgLoader from "vite-svg-loader";
 export default defineConfig({
   modules: ["@wxt-dev/module-vue", "@wxt-dev/unocss"],
   webExt: {
-    chromiumArgs: ["https://cli.im/text", "--auto-open-devtools-for-tabs", "--start-maximized"],
+    startUrls: ["https://cli.im/text"],
+    chromiumArgs: ["--auto-open-devtools-for-tabs", "--start-maximized"],
   },
   vite: () => ({
     plugins: [svgLoader()],

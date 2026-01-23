@@ -229,6 +229,7 @@ onMounted(() => {
       }
 
       .copy-btn {
+        flex-shrink: 0;
         margin-left: 4px;
         font-size: 16px;
         color: #666666;

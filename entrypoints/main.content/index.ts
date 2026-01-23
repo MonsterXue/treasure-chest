@@ -1,11 +1,15 @@
-import { onMessage } from "webext-bridge/content-script";
+import { sendMessage } from "webext-bridge/content-script";
 import App from "./App.vue";
 import "@/styles/reset.css";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
-  cssInjectionMode: 'ui',
+  cssInjectionMode: "ui",
   async main(ctx) {
+    window.messageUtils = {
+      sendMessage,
+    };
+
     const ui = await createShadowRootUi(ctx, {
       name: "treasure-chest",
       position: "inline",

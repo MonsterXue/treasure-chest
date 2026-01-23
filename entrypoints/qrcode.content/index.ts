@@ -8,23 +8,30 @@ const decodeImg = async (url: string) => {
   try {
     const res = await qrCodeDecoder.decodeFromImageUrl(url);
     return res.getText();
-  } catch (err) {
-    console.log(err);
-  }
+  } catch (err) {}
 };
 
 export default defineContentScript({
   matches: ["<all_urls>"],
   cssInjectionMode: "ui",
   async main(ctx) {
-    onMessage("get-all-imgs", async () => {
+    onMessage("decode-all-imgs", async () => {
       const urls = Array.from(
         document.querySelectorAll(
           "img:not(img[src=''])"
         ) as NodeListOf<HTMLImageElement>
       ).map((img) => img.src);
       const result = [];
-      for (const url of urls) {
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
+        sendMessage(
+          "decode-progress",
+          {
+            current: i + 1,
+            total: urls.length,
+          },
+          "popup"
+        );
         const base64 = await sendMessage<string>(
           "get-base64",
           url,

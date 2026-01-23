@@ -1,11 +1,18 @@
+<script setup lang="ts">
+const slots = useSlots();
+</script>
+
 <template>
-  <div class="ant-spin-spinning">
+  <div class="ant-spin-spinning w-full">
     <span class="ant-spin-dot">
       <i class="ant-spin-dot-item"></i>
       <i class="ant-spin-dot-item"></i>
       <i class="ant-spin-dot-item"></i>
       <i class="ant-spin-dot-item"></i>
     </span>
+    <div v-if="slots.text" class="ant-spin-text">
+      <slot name="text"></slot>
+    </div>
   </div>
 </template>
 
@@ -75,6 +82,9 @@
         animation-delay: 1.2s;
       }
     }
+  }
+  .ant-spin-text {
+    margin-top: 8px;
   }
 }
 </style>

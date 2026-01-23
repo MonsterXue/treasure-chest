@@ -1,4 +1,4 @@
-import { onMessage, sendMessage } from "webext-bridge/background";
+import { onMessage } from "webext-bridge/background";
 
 const getImgBase64 = (url: string) => {
   return new Promise((r) => {
@@ -24,19 +24,12 @@ const getCurrentTab = async () => {
   } catch {}
 };
 
-const messageContainer = new Set();
-
 export default defineBackground(() => {
-  console.log("Hello background!", { id: browser.runtime.id });
-
-  onMessage("message-init", ({ sender, data }) => {
-    console.log(data);
-    messageContainer.add(sender.tabId);
-  });
   onMessage("get-current-tab", async () => {
     const tab = await getCurrentTab();
     return tab;
   });
+
   onMessage("toast-to-background", async ({ data }) => {
     const tab = await getCurrentTab();
     if (!tab) return;
