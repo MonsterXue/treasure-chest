@@ -42,7 +42,9 @@ const getAllCookies = async () => {
       url: item.domain,
       id: MD5(`${item.name}_${item.value}_${item.domain}`).toString(),
     }));
-  } catch {}
+  } catch (err) {
+    console.log(err)
+  }
 };
 
 const cookieForm = reactive({
@@ -170,6 +172,7 @@ const addCookieVisible = ref(false);
 .cookie-wrapper {
   width: 600px;
   max-height: 500px;
+  min-height: 300px;
   padding: 8px;
   .action-icon {
     color: #666666;

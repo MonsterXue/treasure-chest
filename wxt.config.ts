@@ -9,7 +9,8 @@ export default defineConfig({
     chromiumArgs: ["--auto-open-devtools-for-tabs", "--start-maximized"],
   },
   manifest: {
-    permissions: ['cookies']
+    permissions: ["cookies", "tabs"],
+    host_permissions: ["<all_urls>"],
   },
   vite: () => ({
     plugins: [svgLoader()],
