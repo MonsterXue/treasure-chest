@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Message from "@/components/Message/index.vue";
+import Message from "@/lib/message/index.vue";
 
 const messageRef = ref();
 const showMessage = (text: string, type: string) => {

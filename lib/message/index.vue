@@ -1,22 +1,17 @@
 <script setup lang="ts">
+import { getTransitionProps } from "../_utils/transition";
 import Notice from "./item.vue";
+
+interface NoticeItem {
+  id: number;
+  text?: string;
+  type?: MessageType;
+}
+
 let idx = 0;
-const notices = ref<Array<{ id: number; text?: string; type?: string }>>([]);
+const notices = ref<NoticeItem[]>([]);
 
-const getTransitionProps = (transitionName: string) => {
-  return {
-    name: transitionName,
-    appear: true,
-    enterFromClass: `${transitionName}-enter ${transitionName}-enter-prepare ${transitionName}-enter-start`,
-    enterActiveClass: `${transitionName}-enter ${transitionName}-enter-prepare`,
-    enterToClass: `${transitionName}-enter ${transitionName}-enter-active`,
-    leaveFromClass: ` ${transitionName}-leave`,
-    leaveActiveClass: `${transitionName}-leave ${transitionName}-leave-active`,
-    leaveToClass: `${transitionName}-leave ${transitionName}-leave-active`,
-  };
-};
-
-const add = (text?: string, type = "success") => {
+const add = (text?: string, type: MessageType = "success") => {
   notices.value.push({
     id: idx++,
     text,
@@ -35,7 +30,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="message-wrapper">
+  <div class="ant-message">
     <TransitionGroup
       tag="div"
       v-bind="getTransitionProps('message-notice-move-up')"
@@ -44,7 +39,7 @@ defineExpose({
         v-for="item in notices"
         :key="item.id"
         :text="item.text"
-        :iocn="item.type"
+        :icon="item.type"
         @close="remove(item.id)"
       />
     </TransitionGroup>
@@ -79,34 +74,34 @@ defineExpose({
 }
 
 .message-notice-move-up {
-  animation-fill-mode: "forwards";
+  animation-fill-mode: forwards;
 }
 
 .message-notice-move-up-appear,
 .message-notice-move-up-enter {
   animation-name: messageMoveIn;
   animation-duration: 0.3s;
-  animation-play-state: "paused";
+  animation-play-state: paused;
   animation-timing-function: cubic-bezier(0.78, 0.14, 0.15, 0.86);
 }
 .message-notice-move-up-appear,
 .message-notice-move-up-appear-active,
 .message-notice-move-up-enter,
 .message-notice-move-up-enter-active {
-  animation-play-state: "running";
+  animation-play-state: running;
 }
 .message-notice-move-up-leave {
   animation-name: messageMoveOut;
   animation-duration: 0.3s;
-  animation-play-state: "paused";
+  animation-play-state: paused;
   animation-timing-function: cubic-bezier(0.78, 0.14, 0.15, 0.86);
 }
 .message-notice-move-up-leave,
 .message-notice-move-up-leave-active {
-  animation-play-state: "running";
+  animation-play-state: running;
 }
 
-.message-wrapper {
+.ant-message {
   position: fixed;
   top: 8px;
   left: 50%;

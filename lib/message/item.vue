@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import SuccessIcon from "@/assets/success.svg?component";
+import ErrorIcon from "@/assets/error.svg?component";
+import { MessageType } from "@/composables/useMessmage";
 
 interface IProps {
   text?: string;
   duration?: number;
-  icon?: string;
+  icon?: MessageType;
 }
 
 const props = withDefaults(defineProps<IProps>(), {
@@ -13,8 +15,9 @@ const props = withDefaults(defineProps<IProps>(), {
 });
 const emits = defineEmits(["close"]);
 
-const defaultIcons: Record<string, ReturnType<typeof h>> = {
+const defaultIcons: Record<MessageType, ReturnType<typeof h>> = {
   success: h(SuccessIcon, { style: "color: #52c41a" }),
+  error: h(ErrorIcon, { style: "color: #ff4d4f" }),
 };
 
 let closeTimer: NodeJS.Timeout | null;

@@ -8,6 +8,9 @@ export default defineConfig({
     startUrls: ["https://cli.im/text"],
     chromiumArgs: ["--auto-open-devtools-for-tabs", "--start-maximized"],
   },
+  manifest: {
+    permissions: ['cookies']
+  },
   vite: () => ({
     plugins: [svgLoader()],
     server: {

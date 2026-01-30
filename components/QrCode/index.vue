@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { copy } from "@/utils/general";
 import { onMessage, sendMessage } from "webext-bridge/popup";
-import Spin from "@/components/Spin/index.vue";
+import Spin from "@/lib/spin/index.vue";
 
 interface QrResult {
   url: string;
@@ -48,7 +48,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="qrcode-wrapper">
     <Spin v-if="loading">
       <template #text>
         <div class="text-xs">
@@ -77,12 +77,17 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-      <div v-if="!list.length" class="text-center my-10">当前页面未检测到二维码</div>
+      <div v-if="!list.length" class="text-center my-10">
+        当前页面未检测到二维码
+      </div>
     </template>
   </div>
 </template>
 
 <style lang="less" scoped>
+.qrcode-wrapper {
+  width: 350px;
+}
 .qrcode-item {
   padding: 8px;
   border-bottom: 1px solid #f0f0f0;
