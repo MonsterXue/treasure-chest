@@ -16,11 +16,12 @@ export default defineContentScript({
   cssInjectionMode: "ui",
   async main(ctx) {
     onMessage("decode-all-imgs", async () => {
-      const urls = Array.from(
+      const imgs = Array.from(
         document.querySelectorAll(
-          "img:not(img[src=''])"
-        ) as NodeListOf<HTMLImageElement>
+          "img:not(img[src=''])",
+        ) as NodeListOf<HTMLImageElement>,
       ).map((img) => img.src);
+      const urls = [...new Set(imgs)];
       const result = [];
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
@@ -30,12 +31,12 @@ export default defineContentScript({
             current: i + 1,
             total: urls.length,
           },
-          "popup"
+          "popup",
         );
         const base64 = await sendMessage<string>(
           "get-base64",
           url,
-          "background"
+          "background",
         );
         if (!base64) continue;
         const content = await decodeImg(base64);

@@ -9,6 +9,7 @@ export default defineConfig({
     chromiumArgs: ["--auto-open-devtools-for-tabs", "--start-maximized"],
   },
   manifest: {
+    name: '百宝箱',
     permissions: ["cookies", "tabs"],
     host_permissions: ["<all_urls>"],
   },
