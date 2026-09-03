@@ -4,8 +4,44 @@ import Cookie from "@/components/Cookie/index.vue";
 import LeftIcon from "@/assets/left.svg?component";
 import QrcodeIcon from "@/assets/qrcode.svg?url";
 import CookieIcon from "@/assets/cookie.svg?url";
+import MediaIcon from "@/assets/media.svg?url";
+import type { Component } from "vue";
 
-const toolList = [
+interface ToolItem {
+  title: string;
+  icon: string;
+  component?: Component;
+  action?: () => void | Promise<void>;
+}
+
+const actionError = ref("");
+
+const startMediaPicker = async () => {
+  actionError.value = "";
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  if (!tab.id) {
+    actionError.value = "无法获取当前页面";
+    return;
+  }
+
+  try {
+    const response = await browser.tabs.sendMessage(tab.id, {
+      type: "start-media-picker",
+    });
+    if (!response?.ok) throw new Error("Media picker did not acknowledge");
+    window.close();
+  } catch (error) {
+    console.log(error);
+    actionError.value = "页面脚本尚未加载，请刷新后重试";
+  }
+};
+
+const toolList: ToolItem[] = [
+  {
+    title: "媒体拾取",
+    icon: MediaIcon,
+    action: startMediaPicker,
+  },
   {
     title: "二维码",
     icon: QrcodeIcon,
@@ -17,7 +53,15 @@ const toolList = [
     component: markRaw(Cookie),
   },
 ];
-const activeTool = ref<(typeof toolList)[0]>();
+const activeTool = ref<ToolItem>();
+
+const selectTool = (item: ToolItem) => {
+  if (item.action) {
+    item.action();
+    return;
+  }
+  activeTool.value = item;
+};
 </script>
 
 <template>
@@ -41,11 +85,16 @@ const activeTool = ref<(typeof toolList)[0]>();
           class="tool-item"
           v-for="(item, index) in toolList"
           :key="index"
-          @click="activeTool = item"
+          role="button"
+          tabindex="0"
+          @click="selectTool(item)"
+          @keydown.enter.prevent="selectTool(item)"
+          @keydown.space.prevent="selectTool(item)"
         >
           <img class="tool-item-icon" :src="item.icon" />
           <div>{{ item.title }}</div>
         </div>
+        <div v-if="actionError" class="tool-action-error">{{ actionError }}</div>
       </div>
     </div>
   </div>
@@ -84,10 +133,10 @@ const activeTool = ref<(typeof toolList)[0]>();
     .tool-item-wrapper {
       display: flex;
       flex-wrap: wrap;
-      width: 160px;
+      width: 240px;
     }
     .tool-item {
-      width: 50%;
+      width: 33.3333%;
       padding: 8px 0;
       text-align: center;
       cursor: pointer;
@@ -95,10 +144,21 @@ const activeTool = ref<(typeof toolList)[0]>();
       &:hover {
         background-color: #f5f5f5;
       }
+      &:focus-visible {
+        outline: 2px solid rgba(22, 119, 255, 0.35);
+        outline-offset: -2px;
+      }
       .tool-item-icon {
         width: 32px;
         height: 32px;
       }
+    }
+    .tool-action-error {
+      width: 100%;
+      padding: 6px 8px 2px;
+      color: #ff4d4f;
+      font-size: 12px;
+      text-align: center;
     }
   }
 }

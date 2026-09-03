@@ -11,19 +11,65 @@ interface CookieItem {
   id: string;
   name: string;
   value: string;
-  url: string;
+  host: string;
+  path: string;
+}
+
+interface CookieInput {
+  name: string;
+  value: string;
+  host: string;
+  path: string;
 }
 
 const cookieList = ref<CookieItem[]>([]);
-const getDomain = (hostname: string) => {
-  const splitHostName = hostname.split(".");
-  const level = splitHostName.length;
-  if (level > 2) {
-    splitHostName.shift();
-    return splitHostName.join(".");
-  }
-  return hostname;
+
+const serializeCookie = ({ name, value, host, path }: CookieInput) => {
+  return `${name}=${value}; Domain=${host}; Path=${path}`;
 };
+
+const parseCookie = (text: string): CookieInput => {
+  const parts = text
+    .trim()
+    .replace(/^set-cookie:\s*/i, "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const nameValue = parts.shift();
+  const separatorIndex = nameValue?.indexOf("=") ?? -1;
+  if (!nameValue || separatorIndex <= 0) {
+    throw new Error("Invalid cookie input");
+  }
+
+  const name = nameValue.slice(0, separatorIndex).trim();
+  const value = nameValue.slice(separatorIndex + 1).trim();
+  const attributes = new Map<string, string>();
+  parts.forEach((part) => {
+    const attributeSeparatorIndex = part.indexOf("=");
+    if (attributeSeparatorIndex === -1) return;
+    const key = part.slice(0, attributeSeparatorIndex).trim().toLowerCase();
+    const attributeValue = part.slice(attributeSeparatorIndex + 1).trim();
+    attributes.set(key, attributeValue);
+  });
+
+  const host = attributes.get("domain") ?? attributes.get("host") ?? "";
+  const path = attributes.get("path") ?? "";
+  if (!name || !host || !path.startsWith("/")) {
+    throw new Error("Invalid cookie input");
+  }
+
+  return { name, value, host, path };
+};
+
+const getCookieUrl = (host: string, path: string) => {
+  const hostname = host.replace(/^\./, "");
+  const url = new URL(`https://${hostname}${path}`);
+  if (url.hostname.toLowerCase() !== hostname.toLowerCase()) {
+    throw new Error("Invalid cookie host");
+  }
+  return url.toString();
+};
+
 const getAllCookies = async () => {
   try {
     // @ts-ignore
@@ -39,19 +85,18 @@ const getAllCookies = async () => {
     cookieList.value = res.map((item) => ({
       name: item.name,
       value: item.value,
-      url: item.domain,
-      id: MD5(`${item.name}_${item.value}_${item.domain}`).toString(),
+      host: item.domain,
+      path: item.path,
+      id: MD5(
+        `${item.name}_${item.value}_${item.domain}_${item.path}`,
+      ).toString(),
     }));
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
 };
 
-const cookieForm = reactive({
-  name: "",
-  value: "",
-  url: "",
-});
+const cookieInput = ref("");
 
 const onDelete = async (item: CookieItem) => {
   const flag = window.confirm("确认删除吗?");
@@ -59,16 +104,9 @@ const onDelete = async (item: CookieItem) => {
   const findIdx = cookieList.value.findIndex((p) => p.id === item.id);
   if (findIdx === -1) return;
   try {
-    // @ts-ignore
-    const tab = await sendMessage<Browser.tabs.Tab>(
-      "get-current-tab",
-      null,
-      "background",
-    );
-    if (!tab) return;
     await browser.cookies.remove({
       name: item.name,
-      url: tab.url!,
+      url: getCookieUrl(item.host, item.path),
     });
     cookieList.value.splice(findIdx, 1);
     message.success("删除成功");
@@ -77,39 +115,38 @@ const onDelete = async (item: CookieItem) => {
   }
 };
 const onSave = async () => {
-  if (!cookieForm.name.trim()) {
-    message.error("请输入名称");
-    return;
-  }
-  if (!cookieForm.value.trim()) {
-    message.error("请输入名称");
-    return;
-  }
-  if (!cookieForm.url.trim()) {
-    message.error("请输入名称");
-    return;
-  }
-  if (!/^https?:\/\//.test(cookieForm.url)) {
-    message.error("请输入完整的域名");
-    return;
-  }
+  let cookie: CookieInput;
   try {
-    const { hostname } = new URL(cookieForm.url);
+    cookie = parseCookie(cookieInput.value);
+  } catch {
+    message.error("Cookie 格式错误，请输入复制得到的完整内容");
+    return;
+  }
+
+  try {
+    const url = getCookieUrl(cookie.host, cookie.path);
     await browser.cookies.set({
-      name: cookieForm.name,
-      value: cookieForm.value,
-      url: cookieForm.url,
-      domain: getDomain(hostname),
+      name: cookie.name,
+      value: cookie.value,
+      url,
+      ...(cookie.host.startsWith(".") ? { domain: cookie.host } : {}),
+      path: cookie.path,
       expirationDate:
         Math.floor(new Date().getTime() / 1000) + 30 * 24 * 60 * 60,
     });
     message.success("操作成功");
+    cookieInput.value = "";
     addCookieVisible.value = false;
     getAllCookies();
   } catch (err) {
-    message.error("操作失败, 请检查域是否正确");
+    message.error("操作失败，请检查 host 和 path 是否正确");
     console.log(err);
   }
+};
+
+const openAddCookie = () => {
+  cookieInput.value = "";
+  addCookieVisible.value = true;
 };
 
 onMounted(() => {
@@ -122,7 +159,7 @@ const addCookieVisible = ref(false);
 <template>
   <div class="cookie-wrapper">
     <div class="text-end">
-      <Button type="primary" link @click="addCookieVisible = true">
+      <Button type="primary" link @click="openAddCookie">
         添加cookie
       </Button>
     </div>
@@ -137,9 +174,13 @@ const addCookieVisible = ref(false);
         <div class="table-body__row" v-for="item in cookieList" :key="item.id">
           <div class="table-cell">{{ item.name }}</div>
           <div class="table-cell">{{ item.value }}</div>
-          <div class="table-cell">{{ item.url }}</div>
+          <div class="table-cell">{{ item.host }}</div>
           <div class="table-cell">
-            <CopyIcon class="action-icon" @click="copy(item.value)" />
+            <CopyIcon
+              class="action-icon"
+              title="复制 Cookie"
+              @click="copy(serializeCookie(item))"
+            />
             <DeleteIcon class="action-icon" @click="onDelete(item)" />
           </div>
         </div>
@@ -154,16 +195,10 @@ const addCookieVisible = ref(false);
     @ok="onSave"
   >
     <div class="form-item">
-      <span>名称</span>
-      <Input v-model:value="cookieForm.name" />
-    </div>
-    <div class="form-item">
-      <span>值</span>
-      <Input v-model:value="cookieForm.value" />
-    </div>
-    <div class="form-item">
-      <span>域</span>
-      <Input v-model:value="cookieForm.url" placeholder="请输入完整的域名" />
+      <Input
+        v-model:value="cookieInput"
+        placeholder="请输入 Cookie，例如 token=xxx; Domain=.example.com; Path=/"
+      />
     </div>
   </Modal>
 </template>
@@ -220,18 +255,8 @@ const addCookieVisible = ref(false);
 }
 
 .form-item {
-  display: flex;
-  align-items: center;
-  & + .form-item {
-    margin-top: 8px;
-  }
-  & > span {
-    width: 40px;
-    flex-shrink: 0;
-  }
   input {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
   }
 }
 </style>
