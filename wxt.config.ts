@@ -17,8 +17,12 @@ export default defineConfig({
       96: "icon/icon-96.png",
       128: "icon/icon-128.png",
     },
-    permissions: ["cookies", "tabs"],
+    permissions: ["cookies", "tabs", "storage", "webNavigation", "webRequest", "declarativeNetRequestWithHostAccess"],
     host_permissions: ["<all_urls>"],
+    web_accessible_resources: [{
+      resources: ["cookie-sync-gate.html"],
+      matches: ["<all_urls>"],
+    }],
   },
   vite: () => ({
     plugins: [svgLoader()],

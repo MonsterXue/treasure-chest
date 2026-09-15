@@ -5,6 +5,7 @@ import LeftIcon from "@/assets/left.svg?component";
 import QrcodeIcon from "@/assets/qrcode.svg?url";
 import CookieIcon from "@/assets/cookie.svg?url";
 import MediaIcon from "@/assets/media.svg?url";
+import SyncIcon from "@/assets/sync.svg?url";
 import type { Component } from "vue";
 
 interface ToolItem {
@@ -37,6 +38,21 @@ const startMediaPicker = async () => {
 };
 
 const toolList: ToolItem[] = [
+  {
+    title: "Cookie 同步",
+    icon: SyncIcon,
+    action: async () => {
+      const url = browser.runtime.getURL("/cookie-sync.html");
+      const tabs = await browser.tabs.query({ url });
+      if (tabs[0]?.id) {
+        await browser.tabs.update(tabs[0].id, { active: true });
+        await browser.windows.update(tabs[0].windowId, { focused: true });
+      } else {
+        await browser.tabs.create({ url });
+      }
+      window.close();
+    },
+  },
   {
     title: "媒体拾取",
     icon: MediaIcon,
@@ -94,7 +110,9 @@ const selectTool = (item: ToolItem) => {
           <img class="tool-item-icon" :src="item.icon" />
           <div>{{ item.title }}</div>
         </div>
-        <div v-if="actionError" class="tool-action-error">{{ actionError }}</div>
+        <div v-if="actionError" class="tool-action-error">
+          {{ actionError }}
+        </div>
       </div>
     </div>
   </div>
